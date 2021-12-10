@@ -182,27 +182,6 @@ public final class Controllers {
         stage.setTitle(Metadata.FULL_TITLE);
         stage.initStyle(StageStyle.TRANSPARENT);
         stage.setScene(scene);
-
-        if (globalConfig().getAgreementVersion() < 1) {
-            JFXDialogLayout agreementPane = new JFXDialogLayout();
-            agreementPane.setHeading(new Label(i18n("launcher.agreement")));
-            agreementPane.setBody(new Label(i18n("launcher.agreement.hint")));
-            JFXHyperlink agreementLink = new JFXHyperlink(i18n("launcher.agreement"));
-            agreementLink.setOnAction(e -> FXUtils.openLink(Metadata.EULA_URL));
-            JFXButton yesButton = new JFXButton(i18n("launcher.agreement.accept"));
-            yesButton.getStyleClass().add("dialog-accept");
-            yesButton.setOnAction(e -> {
-                globalConfig().setAgreementVersion(1);
-                agreementPane.fireEvent(new DialogCloseEvent());
-            });
-            JFXButton noButton = new JFXButton(i18n("launcher.agreement.decline"));
-            noButton.getStyleClass().add("dialog-cancel");
-            noButton.setOnAction(e -> {
-                System.exit(1);
-            });
-            agreementPane.setActions(agreementLink, yesButton, noButton);
-            Controllers.dialog(agreementPane);
-        }
     }
 
     public static void dialog(Region content) {
