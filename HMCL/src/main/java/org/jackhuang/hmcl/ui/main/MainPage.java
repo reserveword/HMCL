@@ -223,11 +223,11 @@ public final class MainPage extends StackPane implements DecoratorPage {
     }
 
     public MainPage() {
-        if (Metadata.isNightly()) {
-            announcementPane.getChildren().add(new AnnouncementCard(i18n("update.channel.nightly.title"), i18n("update.channel.nightly.hint")));
-        } else if (Metadata.isDev()) {
-            announcementPane.getChildren().add(new AnnouncementCard(i18n("update.channel.dev.title"), i18n("update.channel.dev.hint")));
-        }
+//         if (Metadata.isNightly()) {
+//             announcementPane.getChildren().add(new AnnouncementCard(i18n("update.channel.nightly.title"), i18n("update.channel.nightly.hint")));
+//         } else if (Metadata.isDev()) {
+//             announcementPane.getChildren().add(new AnnouncementCard(i18n("update.channel.dev.title"), i18n("update.channel.dev.hint")));
+//         }
     }
 
     private void showUpdate(boolean show) {
