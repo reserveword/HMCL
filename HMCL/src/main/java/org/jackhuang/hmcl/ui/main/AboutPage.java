@@ -174,26 +174,6 @@ public class AboutPage extends StackPane {
             dep.getContent().setAll(javafx, jfoenix, gson, xz, fxgson, constantPoolScanner, openNBT, jstun, minecraftJFXSkin);
         }
 
-        ComponentList legal = new ComponentList();
-        {
-            IconedTwoLineListItem copyright = new IconedTwoLineListItem();
-            copyright.setTitle(i18n("about.copyright"));
-            copyright.setSubtitle(i18n("about.copyright.statement"));
-            copyright.setExternalLink("https://hmcl.huangyuhui.net/about/");
-
-            IconedTwoLineListItem claim = new IconedTwoLineListItem();
-            claim.setTitle(i18n("about.claim"));
-            claim.setSubtitle(i18n("about.claim.statement"));
-            claim.setExternalLink(Metadata.EULA_URL);
-
-            IconedTwoLineListItem openSource = new IconedTwoLineListItem();
-            openSource.setTitle(i18n("about.open_source"));
-            openSource.setSubtitle(i18n("about.open_source.statement"));
-            openSource.setExternalLink("https://github.com/huanghongxun/HMCL");
-
-            legal.getContent().setAll(copyright, claim, openSource);
-        }
-
         VBox content = new VBox(16);
         content.setPadding(new Insets(10));
         content.getChildren().setAll(
@@ -207,10 +187,7 @@ public class AboutPage extends StackPane {
                 community,
 
                 ComponentList.createComponentListTitle(i18n("about.dependency")),
-                dep,
-
-                ComponentList.createComponentListTitle(i18n("about.legal")),
-                legal
+                dep
         );
 
 

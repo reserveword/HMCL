@@ -1,5 +1,7 @@
 # Hello Minecraft! Launcher [![Build Status](https://ci.huangyuhui.net/job/HMCL/badge/icon?.svg)](https://ci.huangyuhui.net/job/HMCL)
 
+Hello Minecraft! Launcher, but **NO EULA!**
+
 Join chat! [Discord](https://discord.gg/jVvC7HfM6U) [KaiHeiLa](https://kaihei.co/Kx7n3t)
 
 ## Introduction
