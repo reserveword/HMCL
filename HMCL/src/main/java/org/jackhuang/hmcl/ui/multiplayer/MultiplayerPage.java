@@ -134,7 +134,7 @@ public class MultiplayerPage extends DecoratorAnimatedPage implements DecoratorP
 
     private void testNAT() {
         Task.supplyAsync(() -> {
-            DiscoveryTest tester = new DiscoveryTest(null, 0, "stun.stunprotocol.org", 3478);
+            DiscoveryTest tester = new DiscoveryTest(null, 0, "stun.miwifi.com", 3478);
             return tester.test();
         }).whenComplete(Schedulers.javafx(), (info, exception) -> {
             if (exception == null) {
@@ -373,10 +373,11 @@ public class MultiplayerPage extends DecoratorAnimatedPage implements DecoratorP
             }
         } else if (e instanceof MultiplayerManager.CatoExitException) {
             LOG.info("Cato exited accidentally");
+            int exitCode = ((MultiplayerManager.CatoExitException) e).getExitCode();
             if (!((MultiplayerManager.CatoExitException) e).isReady()) {
-                return i18n("multiplayer.exit.before_ready");
+                return i18n("multiplayer.exit.before_ready", exitCode);
             } else {
-                return i18n("multiplayer.exit.after_ready");
+                return i18n("multiplayer.exit.after_ready", exitCode);
             }
         } else if (e instanceof ChecksumMismatchException) {
             return i18n("exception.artifact_malformed");
