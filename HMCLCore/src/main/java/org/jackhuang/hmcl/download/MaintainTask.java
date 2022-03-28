@@ -27,6 +27,7 @@ import org.jackhuang.hmcl.util.versioning.VersionNumber;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -62,18 +63,31 @@ public class MaintainTask extends Task<Version> {
         String mainClass = version.resolve(null).getMainClass();
 
         if (mainClass != null && mainClass.equals(LibraryAnalyzer.LAUNCH_WRAPPER_MAIN)) {
-            return maintainOptiFineLibrary(repository, maintainGameWithLaunchWrapper(unique(version), true), false);
+            version = maintainOptiFineLibrary(repository, maintainGameWithLaunchWrapper(unique(version), true), false);
         } else if (mainClass != null && mainClass.equals(LibraryAnalyzer.MOD_LAUNCHER_MAIN)) {
             // Forge 1.13 and OptiFine
-            return maintainOptiFineLibrary(repository, maintainGameWithCpwModLauncher(repository, unique(version)), true);
+            version = maintainOptiFineLibrary(repository, maintainGameWithCpwModLauncher(repository, unique(version)), true);
         } else if (mainClass != null && mainClass.equals(LibraryAnalyzer.BOOTSTRAP_LAUNCHER_MAIN)) {
             // Forge 1.17
-            return maintainGameWithCpwBoostrapLauncher(repository, unique(version));
+            version = maintainGameWithCpwBoostrapLauncher(repository, unique(version));
         } else {
             // Vanilla Minecraft does not need maintain
             // Fabric does not need maintain, nothing compatible with fabric now.
-            return maintainOptiFineLibrary(repository, unique(version), false);
+            version = maintainOptiFineLibrary(repository, unique(version), false);
         }
+
+        List<Library> libraries = version.getLibraries();
+        if (libraries.size() > 0) {
+            Library library = libraries.get(0);
+            if ("org.glavo".equals(library.getGroupId())
+                    && ("log4j-patch".equals(library.getArtifactId()) || "log4j-patch-beta9".equals(library.getArtifactId()))
+                    && "1.0".equals(library.getVersion())
+                    && library.getDownload() == null) {
+                version = version.setLibraries(libraries.subList(1, libraries.size()));
+            }
+        }
+
+        return version;
     }
 
     public static Version maintainPreservingPatches(GameRepository repository, Version version) {
@@ -88,34 +102,42 @@ public class MaintainTask extends Task<Version> {
         VersionLibraryBuilder builder = new VersionLibraryBuilder(version);
         String mainClass = null;
 
-        if (!libraryAnalyzer.has(FORGE)) {
-            builder.removeTweakClass("forge");
-        }
-
         // Installing Forge will override the Minecraft arguments in json, so LiteLoader and OptiFine Tweaker are being re-added.
-
         if (libraryAnalyzer.has(LITELOADER) && !libraryAnalyzer.hasModLauncher()) {
-            builder.replaceTweakClass("liteloader", "com.mumfrey.liteloader.launch.LiteLoaderTweaker", !reorderTweakClass);
+            builder.replaceTweakClass(LibraryAnalyzer.LITELOADER_TWEAKER, LibraryAnalyzer.LITELOADER_TWEAKER, !reorderTweakClass, reorderTweakClass);
         } else {
-            builder.removeTweakClass("liteloader");
+            builder.removeTweakClass(LibraryAnalyzer.LITELOADER_TWEAKER);
         }
 
         if (libraryAnalyzer.has(OPTIFINE)) {
-            if (!libraryAnalyzer.has(LITELOADER) && !libraryAnalyzer.has(FORGE)) {
-                builder.replaceTweakClass("optifine", "optifine.OptiFineTweaker", !reorderTweakClass);
+            if (!libraryAnalyzer.has(LITELOADER) && !libraryAnalyzer.has(FORGE) && builder.hasTweakClass(LibraryAnalyzer.OPTIFINE_TWEAKERS[1])) {
+                builder.replaceTweakClass(LibraryAnalyzer.OPTIFINE_TWEAKERS[1], LibraryAnalyzer.OPTIFINE_TWEAKERS[0], !reorderTweakClass, reorderTweakClass);
             } else {
                 if (libraryAnalyzer.hasModLauncher()) {
                     // If ModLauncher installed, we use ModLauncher in place of LaunchWrapper.
-                    mainClass = "cpw.mods.modlauncher.Launcher";
-                    builder.replaceTweakClass("optifine", "optifine.OptiFineForgeTweaker", !reorderTweakClass);
+                    mainClass = LibraryAnalyzer.MOD_LAUNCHER_MAIN;
+                    for (String optiFineTweaker : LibraryAnalyzer.OPTIFINE_TWEAKERS) {
+                        builder.removeTweakClass(optiFineTweaker);
+                    }
                 } else {
                     // If forge or LiteLoader installed, OptiFine Forge Tweaker is needed.
-                    builder.replaceTweakClass("optifine", "optifine.OptiFineForgeTweaker", !reorderTweakClass);
+                    builder.replaceTweakClass(LibraryAnalyzer.OPTIFINE_TWEAKERS[0], LibraryAnalyzer.OPTIFINE_TWEAKERS[1], !reorderTweakClass, reorderTweakClass);
                 }
 
             }
         } else {
-            builder.removeTweakClass("optifine");
+            for (String optiFineTweaker : LibraryAnalyzer.OPTIFINE_TWEAKERS) {
+                builder.removeTweakClass(optiFineTweaker);
+            }
+        }
+
+        boolean hasForge = libraryAnalyzer.has(FORGE), hasModLauncher = libraryAnalyzer.hasModLauncher();
+        for (String forgeTweaker : LibraryAnalyzer.FORGE_TWEAKERS) {
+            if (!hasForge) {
+                builder.removeTweakClass(forgeTweaker);
+            } else if (!hasModLauncher && builder.hasTweakClass(forgeTweaker)) {
+                builder.replaceTweakClass(forgeTweaker, forgeTweaker, !reorderTweakClass, reorderTweakClass);
+            }
         }
 
         Version ret = builder.build();
@@ -136,10 +158,9 @@ public class MaintainTask extends Task<Version> {
                 builder.addJvmArgument("-Dhmcl.transformer.candidates=${library_directory}/" + library.getPath());
                 if (!libraryExisting) builder.addLibrary(hmclTransformerDiscoveryService);
                 Path libraryPath = repository.getLibraryFile(version, hmclTransformerDiscoveryService).toPath();
-                try {
+                try (InputStream input = MaintainTask.class.getResourceAsStream("/assets/game/HMCLTransformerDiscoveryService-1.0.jar")) {
                     Files.createDirectories(libraryPath.getParent());
-                    Files.copy(MaintainTask.class.getResourceAsStream("/assets/game/HMCLTransformerDiscoveryService-1.0.jar"),
-                            libraryPath, StandardCopyOption.REPLACE_EXISTING);
+                    Files.copy(input, libraryPath, StandardCopyOption.REPLACE_EXISTING);
                 } catch (IOException e) {
                     Logging.LOG.log(Level.WARNING, "Unable to unpack HMCLTransformerDiscoveryService", e);
                 }
@@ -270,7 +291,7 @@ public class MaintainTask extends Task<Version> {
     public static Version unique(Version version) {
         List<Library> libraries = new ArrayList<>();
 
-        SimpleMultimap<String, Integer> multimap = new SimpleMultimap<String, Integer>(HashMap::new, LinkedList::new);
+        SimpleMultimap<String, Integer> multimap = new SimpleMultimap<String, Integer>(HashMap::new, ArrayList::new);
 
         for (Library library : version.getLibraries()) {
             String id = library.getGroupId() + ":" + library.getArtifactId();

@@ -112,7 +112,7 @@ public final class VersionSettingsPage extends StackPane implements DecoratorPag
 
     private final StringProperty selectedVersion = new SimpleStringProperty();
     private final BooleanProperty navigateToSpecificSettings = new SimpleBooleanProperty(false);
-    private final BooleanProperty enableSpecificSettings = new SimpleBooleanProperty(true);
+    private final BooleanProperty enableSpecificSettings = new SimpleBooleanProperty(false);
     private final IntegerProperty maxMemory = new SimpleIntegerProperty();
     private final ObjectProperty<OperatingSystem.PhysicalMemoryStatus> memoryStatus = new SimpleObjectProperty<>(OperatingSystem.PhysicalMemoryStatus.INVALID);
     private final BooleanProperty modpack = new SimpleBooleanProperty();
@@ -154,6 +154,10 @@ public final class VersionSettingsPage extends StackPane implements DecoratorPag
         }
 
         if (!globalSetting) {
+            HintPane gameDirHint = new HintPane(MessageDialogPane.MessageType.INFO);
+            gameDirHint.setText(i18n("settings.game.working_directory.hint"));
+            rootPane.getChildren().add(gameDirHint);
+
             ComponentList iconPickerItemWrapper = new ComponentList();
             rootPane.getChildren().add(iconPickerItemWrapper);
 

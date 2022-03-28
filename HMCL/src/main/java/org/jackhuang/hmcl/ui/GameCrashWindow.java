@@ -34,6 +34,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 import javafx.stage.Stage;
+import org.jackhuang.hmcl.Metadata;
 import org.jackhuang.hmcl.download.LibraryAnalyzer;
 import org.jackhuang.hmcl.game.*;
 import org.jackhuang.hmcl.launch.ProcessListener;
@@ -221,7 +222,7 @@ public class GameCrashWindow extends Stage {
         LogWindow logWindow = new LogWindow();
 
         logWindow.logLine("Command: " + new CommandBuilder().addAll(managedProcess.getCommands()).toString(), Log4jLevel.INFO);
-        logWindow.logLine("ClassPath: " + managedProcess.getClasspath(), Log4jLevel.INFO);
+        if (managedProcess.getClasspath() != null) logWindow.logLine("ClassPath: " + managedProcess.getClasspath(), Log4jLevel.INFO);
         for (Map.Entry<String, Log4jLevel> entry : logs)
             logWindow.logLine(entry.getKey(), entry.getValue());
 
@@ -281,6 +282,11 @@ public class GameCrashWindow extends Stage {
                 infoPane.setPadding(new Insets(8));
                 infoPane.setAlignment(Pos.CENTER_LEFT);
 
+                TwoLineListItem launcher = new TwoLineListItem();
+                launcher.getStyleClass().setAll("two-line-item-second-large");
+                launcher.setTitle(i18n("launcher"));
+                launcher.setSubtitle(Metadata.VERSION);
+
                 TwoLineListItem version = new TwoLineListItem();
                 version.getStyleClass().setAll("two-line-item-second-large");
                 version.setTitle(i18n("archive.game_version"));
@@ -306,7 +312,7 @@ public class GameCrashWindow extends Stage {
                 arch.setTitle(i18n("system.architecture"));
                 arch.subtitleProperty().bind(GameCrashWindow.this.arch);
 
-                infoPane.getChildren().setAll(version, memory, java, os, arch);
+                infoPane.getChildren().setAll(launcher, version, memory, java, os, arch);
             }
 
             HBox moddedPane = new HBox(8);
@@ -315,13 +321,15 @@ public class GameCrashWindow extends Stage {
                 moddedPane.setAlignment(Pos.CENTER_LEFT);
 
                 for (LibraryAnalyzer.LibraryType type : LibraryAnalyzer.LibraryType.values()) {
-                    analyzer.getVersion(type).ifPresent(ver -> {
-                        TwoLineListItem item = new TwoLineListItem();
-                        item.getStyleClass().setAll("two-line-item-second-large");
-                        item.setTitle(i18n("install.installer." + type.getPatchId()));
-                        item.setSubtitle(ver);
-                        moddedPane.getChildren().add(item);
-                    });
+                    if (!type.getPatchId().isEmpty()) {
+                        analyzer.getVersion(type).ifPresent(ver -> {
+                            TwoLineListItem item = new TwoLineListItem();
+                            item.getStyleClass().setAll("two-line-item-second-large");
+                            item.setTitle(i18n("install.installer." + type.getPatchId()));
+                            item.setSubtitle(ver);
+                            moddedPane.getChildren().add(item);
+                        });
+                    }
                 }
             }
 

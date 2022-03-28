@@ -26,6 +26,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.MessageFormat;
 import java.util.Date;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.logging.*;
 
 /**
@@ -38,15 +41,37 @@ public final class Logging {
     public static final Logger LOG = Logger.getLogger("HMCL");
     private static final ByteArrayOutputStream storedLogs = new ByteArrayOutputStream(IOUtils.DEFAULT_BUFFER_SIZE);
 
+    private static final ConcurrentMap<String, String> forbiddenTokens = new ConcurrentHashMap<>();
+
+    public static void registerForbiddenToken(String token, String replacement) {
+        forbiddenTokens.put(token, replacement);
+    }
+
+    public static void registerAccessToken(String accessToken) {
+        registerForbiddenToken(accessToken, "<access token>");
+    }
+
+    public static String filterForbiddenToken(String message) {
+        for (Map.Entry<String, String> entry : forbiddenTokens.entrySet()) {
+            message = message.replace(entry.getKey(), entry.getValue());
+        }
+        return message;
+    }
+
     public static void start(Path logFolder) {
         LOG.setLevel(Level.ALL);
         LOG.setUseParentHandlers(false);
+        LOG.setFilter(record -> {
+            record.setMessage(filterForbiddenToken(record.getMessage()));
+            return true;
+        });
 
         try {
             Files.createDirectories(logFolder);
             FileHandler fileHandler = new FileHandler(logFolder.resolve("hmcl.log").toAbsolutePath().toString());
             fileHandler.setLevel(Level.FINEST);
             fileHandler.setFormatter(DefaultFormatter.INSTANCE);
+            fileHandler.setEncoding("UTF-8");
             LOG.addHandler(fileHandler);
         } catch (IOException e) {
             System.err.println("Unable to create hmcl.log, " + e.getMessage());
@@ -88,7 +113,11 @@ public final class Logging {
     }
 
     public static String getLogs() {
-        return storedLogs.toString();
+        try {
+            return storedLogs.toString("UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new InternalError(e);
+        }
     }
 
     private static final class DefaultFormatter extends Formatter {
